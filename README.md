@@ -1,3 +1,5 @@
+![logo](https://raw.githubusercontent.com/alix-tz/lebotde7lieux/master/img/logo_botde7lieux_sm.png)
+
 # lebotde7lieux
 A bot that picks and displays on Twitter 7 random locations on Earth
 
