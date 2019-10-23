@@ -80,5 +80,5 @@ if __name__ == '__main__':
 		qid = choose_key(classes_of_entities)
 		report_qid(qid, classes_of_entities)
 		status, response = send_wd_request(qid)
-	places = list_items(json.loads(response)["results"])
+	places = list_items(json.loads(response))
 
