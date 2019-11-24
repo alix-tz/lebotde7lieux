@@ -1,2 +1,3 @@
 venv/
 secrets.py
+.ipynb_checkpoints/
