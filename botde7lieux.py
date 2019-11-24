@@ -17,6 +17,21 @@ def report_qid(idk: str, dictionnary: dict):
 	print("Going for '{}':'{}'".format(idk, dictionnary[idk]["name"]))
 
 
+def report_map_generation():
+	"""display a message"""
+	print("Generating the map.")
+
+
+def report_message(message):
+	"""display a message"""
+	print('This message was generated :\n"{}"'.format(message))
+
+
+def report_msg_too_long():
+	"""display a message"""
+	print("The generated message exceeds 280 characters.")
+
+
 def report_statuscode(sc: str):
 	"""display a colored message"""
 	from termcolor import colored
@@ -69,16 +84,78 @@ def list_items(response: dict):
 	for item in response["results"]["bindings"]:
 		seven_places.append({"url":item["item"]["value"], "name": item["itemLabel"]["value"], "coords": item["coords"]["value"]})
 	return seven_places
-	
 
+
+def generate_map(places):
+	def make_a_marker(coords, label):
+		color = "f71c01"
+		lon, lat = coords.replace("Point(", "").replace(")", "").split(" ")
+		return "pin-s-{label}+{color}({lon},{lat})".format(color = color, label = label, lon = lon, lat = lat)
+
+
+	def build_overlay(places):
+		overlay = ""
+		label = 1
+		for place in places:
+			overlay = overlay + ",{}".format(make_a_marker(place["coords"], label))
+			label += 1
+		if overlay[0] == ",":
+			overlay = overlay[1:]
+		return overlay
+
+
+	from secrets import mapbox_pkey
+
+	report_map_generation()
+	username = "botde7lieux"
+	style_id = "ck3czdwk33eyf1cp75mrdryex"
+	overlay = build_overlay(places)
+	url = "https://api.mapbox.com/styles/v1/{username}/{style_id}/static/{overlay}/{lon},{lat},{zoom}/{width}x{height}@2x?access_token={pk}".format(username=username, style_id=style_id, lon=0, lat=0, zoom=0, width=900, height=900, overlay=overlay, pk=mapbox_pkey)
+	r = requests.get(url = url)
+	report_statuscode(r.status_code)
+	return r.content # this is a png file
+
+
+def build_text_for_tweet(category):
+    def make_short_line(line):
+        words = line.split(" ")
+        if len(words) > 3:
+            while len(line) > 30 :
+                words = words[:-1]
+                line = " ".join(words)
+        return line
+
+
+    def shorten_message(message, excess):
+        print("We need to remove {} characters".format(excess))
+        lines = message.split("\n")
+        new_message = lines[0]
+        for line in lines[1:]:
+        	new_message = new_message + "\n{}...".format(make_short_line(line))
+        print("{} characters were removed".format(len(message)-len(new_message)))
+        return new_message
+
+
+    message = "7 instances of '{}':".format(category)
+    label = 1
+    for place in places :
+    	message = "{message}\n{label}: {name}".format(message=message, label=label, name=place["name"])
+    	label += 1
+    while len(message) > 280:
+    	report_msg_too_long()
+    	message = shorten_message(message, len(message)-280)
+    report_message(message)
+    return message
 
 if __name__ == '__main__':
-	file_path = "./data/classes_of_entity.json"
-	classes_of_entities = load_file(file_path)
-	status = 0
-	while int(status) != 200:
-		qid = choose_key(classes_of_entities)
-		report_qid(qid, classes_of_entities)
-		status, response = send_wd_request(qid)
-	places = list_items(json.loads(response))
-
+    file_path = "./data/classes_of_entity.json"
+    classes_of_entities = load_file(file_path)
+    status = 0
+    while int(status) != 200:
+        qid = choose_key(classes_of_entities)
+        report_qid(qid, classes_of_entities)
+        status, response = send_wd_request(qid)
+    places = list_items(json.loads(response))
+    text = build_text_for_tweet(classes_of_entities[qid]["name"])
+    
+    #generate_map(places)
