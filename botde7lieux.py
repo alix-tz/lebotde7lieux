@@ -116,22 +116,23 @@ def generate_map(places):
 	return r.content # this is a png file
 
 
-def build_text_for_tweet(category):
+def build_text_for_tweet(category, places):
     def make_short_line(line):
         words = line.split(" ")
         if len(words) > 3:
             while len(line) > 30 :
                 words = words[:-1]
                 line = " ".join(words)
+                line = line + "..."
         return line
 
 
-    def shorten_message(message, excess):
-        print("We need to remove {} characters".format(excess))
+    def shorten_message(message):
+        print("We need to remove {} characters".format(len(message)-280))
         lines = message.split("\n")
         new_message = lines[0]
         for line in lines[1:]:
-        	new_message = new_message + "\n{}...".format(make_short_line(line))
+        	new_message = new_message + "\n{}".format(make_short_line(line))
         print("{} characters were removed".format(len(message)-len(new_message)))
         return new_message
 
@@ -143,7 +144,7 @@ def build_text_for_tweet(category):
     	label += 1
     while len(message) > 280:
     	report_msg_too_long()
-    	message = shorten_message(message, len(message)-280)
+    	message = shorten_message(message)
     report_message(message)
     return message
 
@@ -156,6 +157,5 @@ if __name__ == '__main__':
         report_qid(qid, classes_of_entities)
         status, response = send_wd_request(qid)
     places = list_items(json.loads(response))
-    text = build_text_for_tweet(classes_of_entities[qid]["name"])
-    
-    #generate_map(places)
+    text = build_text_for_tweet(classes_of_entities[qid]["name"], places)
+    generate_map(places)
