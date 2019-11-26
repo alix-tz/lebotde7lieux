@@ -2,3 +2,4 @@ venv/
 secrets.py
 .ipynb_checkpoints/
 __pycache__/
+temp.png
