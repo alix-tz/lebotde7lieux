@@ -124,13 +124,15 @@ def generate_map(places):
         return overlay
 
 
-    from secrets import mapbox_pkey
+    #from secrets import mapbox_pkey
+    from os import environ
+    MAPBOX_PKEY = environ['MAPBOX_PKEY']
 
     report_map_generation()
     username = "botde7lieux"
     style_id = "ck3czdwk33eyf1cp75mrdryex"
     overlay = build_overlay(places)
-    url = "https://api.mapbox.com/styles/v1/{username}/{style_id}/static/{overlay}/{lon},{lat},{zoom}/{width}x{height}@2x?access_token={pk}".format(username=username, style_id=style_id, lon=0, lat=0, zoom=0, width=900, height=900, overlay=overlay, pk=mapbox_pkey)
+    url = "https://api.mapbox.com/styles/v1/{username}/{style_id}/static/{overlay}/{lon},{lat},{zoom}/{width}x{height}@2x?access_token={pk}".format(username=username, style_id=style_id, lon=0, lat=0, zoom=0, width=900, height=900, overlay=overlay, pk=MAPBOX_PKEY)
     r = requests.get(url = url)
     report_statuscode(r.status_code)
     return r.content # this is a png file
@@ -146,16 +148,14 @@ def save_image_file(img):
 
 def build_text_for_tweet(category, places):
     """Create the textual  content of the future tweet"""
-    def make_short_label(label):
-        """Follow a scenario in order to shorten a label"""
-        label = label.strip()
-        words = label.split(" ")
-        if len(words) > 3:
-            while len(label) > 30 :
-                words = words[:-1]
-                label = " ".join(words)
-                label = label + "..."
-        return label
+    def make_short_label(label, limit_len_line):
+        """Follow a scenario in orfer to shorten a label"""
+        if len(label) < limit_len_line:
+            return label
+        else:
+            limit_len_line = limit_len_line -3
+            label = label[:limit_len_line] + "..."
+            return label
 
 
     def shorten_message(message):
@@ -163,19 +163,21 @@ def build_text_for_tweet(category, places):
         print("We need to remove {} characters".format(len(message)-280))
         lines = message.split("\n")
         new_message = "{firstline}\n{hashtags}\n".format(firstline=lines[0], hashtags=lines[1])
+        top = len(new_message)
+        limit_len_line = (280-top-7) // 7
         for label in lines[2:]:
-        	new_message = new_message + "{label}".format(label=make_short_label(label)) + "\n"
+            new_message = new_message + "{label}".format(label=make_short_label(label, limit_len_line)) + "\n"
         print("{} characters were removed".format(len(message)-len(new_message)))
         return new_message
 
-
+    
     message = "Now discover 7 instances of '{}'!\n#wikidata #B7L\n".format(category)
     label = 1
     for place in places :
         message = "{message}{label}: {name}\n".format(message=message, label=label, name=place["name"])
         label += 1
     if message[-1] == "\n":
-    	message = message[:-2]
+        message = message[:-1]
 
     while len(message) > 280:
         report_msg_too_long()
@@ -203,7 +205,12 @@ def create_tweet(source):
 
 def tweet(message):
     """Post a tweet"""
-    from secrets import CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET
+    from os import environ
+    CONSUMER_KEY = environ['CONSUMER_KEY']
+    CONSUMER_SECRET = environ['CONSUMER_SECRET']
+    ACCESS_TOKEN = environ['ACCESS_TOKEN']
+    ACCESS_TOKEN_SECRET = environ['ACCESS_TOKEN_SECRET']
+    #from secrets import CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET
 
     # Twitter authentication
     auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
@@ -213,14 +220,14 @@ def tweet(message):
     # posting
     report_uploading_image()
     try:
-	    uploaded = api.media_upload(filename = "temp.png")
+        uploaded = api.media_upload(filename = "temp.png")
     except tweepy.error.TweepError as e:
-	    print(e)
-	    uploaded = None
+        print(e)
+        uploaded = None
 
     report_posting_tweet()
     try:
-	    api.update_status(status = message, media_ids = [uploaded.media_id])
+        api.update_status(status = message, media_ids = [uploaded.media_id])
     except tweepy.error.TweepError as e:
         print(e.message)
 
