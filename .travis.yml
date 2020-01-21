@@ -1,3 +1,3 @@
 language: python
 install: "pip install nose pylint"
-script: "nosetest && pylint"
+script: "nosetests && pylint"
